@@ -703,5 +703,16 @@
             document.getElementById('todayStats').innerText += ` | ${data.workouts.length} treino(s)`;
         }
     </script>
+    
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./service-worker.js")
+      .catch((error) => {
+        console.error("Falha ao ativar o modo offline:", error);
+      });
+  });
+}
+</script>
 </body>
 </html>
