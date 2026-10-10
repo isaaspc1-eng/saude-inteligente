@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saúde Inteligente - Seu Assistente Personalizado</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --primary: #1a1a2e;
+            --secondary: #16213e;
+            --accent: #e94560;
+            --light: #f5f7fa;
+            --text: #333;
+            --success: #4caf50;
+            --warning: #fFAc40;
+            --info: #0083b0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Chat Interface */
+        #chatArea {
+            height: 400px;
+            border: 2px solid var(--secondary);
+            border-radius: 15px;
+            padding: 20px;
+            overflow-y: auto;
+            background: var(--light);
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .chat-message {
+            margin: 15px 0;
+            padding: 10px 15px;
+            border-radius: 12px;
+            max-width: 80%;
+        }
+
+        .user-message {
+            background: var(--accent);
+            color: white;
+            margin-left: auto;
+            text-align: right;
+        }
+
+        .bot-message {
+            background: white;
+            color: var(--text);
+            border-radius: 12px 12px 4px 12px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            opacity: 0.6;
+            margin-top: 4px;
+            display: block;
+            text-align: right;
+        }
+
+        /* Input Area */
+        .input-area {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            margin-top: 15px;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            padding: 12px;
+            border: 2px solid var(--secondary);
+            border-radius: 10px;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, textarea:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #d6344f;
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        /* Sections */
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .section h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid var(--secondary);
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Stats Cards */
+        .stats-card {
+            background: var(--secondary);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            margin: 10px;
+        }
+
+        /* Formulários */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        /* Exams Section */
+        .exam-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--info);
+        }
+
+        /* Reminders */
+        .reminder {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background: #fff3e0;
+            border-left: 4px solid var(--warning);
+        }
+
+        /* Workout Plans */
+        .workout-plan {
+            background: #e8f5e9;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            border-left: 4px solid var(--success);
+        }
+
+        /* Progress */
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--accent);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            background: #ffe0e0;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #ffcccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1>🏥 Saúde Inteligente</h1>
+            <p>Assistente de saúde pessoal com IA</p>
+        </header>
+
+        <!-- Chat Area -->
+        <div id="chatArea" role="main">
+            <div style="text-align: center; color: #666; font-style: italic;">
+                Olá! Sou seu assistente de saúde. Como posso ajudar hoje?
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="Digite sua mensagem ou use os comandos abaixo...">
+            <button onclick="sendMessage()">Enviar</button>
+        </div>
+
+        <hr style="margin: 30px 0;">
+
+        <!-- Main Application Sections -->
+        <div class="grid-2">
+
+            <!-- Lado Esquerdo -->
+            <div>
+                <div class="section">
+                    <h2>📊 Painel de Controle</h2>
+                    <div class="stats-card">
+                        <h3>📅 Hoje</h3>
+                        <p id="todayStats">Carregando...</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>💊 Creatina</h3>
+                        <p id="creatineStats">Não registrado</p>
+                    </div>
+                    <div class="stats-card">
+                        <h3>⚖️ Peso</h3>
+                        <p id="weightStats">Não registrado</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <h2>📏 Registros</h2>
+                    <div class="form-group">
+                        <label>Peso (kg)</label>
+                        <input type="number" id="weightInput" placeholder="Ex: 75.5">
+                    </div>
+                    <div class="form-group">
+                        <label>Circunferências</label>
+                        <input type="text" id="measurementsInput" placeholder="Cintura: 82cm - Quadril: 95cm - Braquial: 35cm">
+                    </div>
+                    <button onclick="addMeasurement()" style="width: 100%; background: var(--info); margin-top: 10px;">
+                        📏 Salvar Medidas
+                    </button>
+                </div>
+
+                <div class="section">
+                    <h2>💊 Creatina</h2>
+                    <div class="form-group">
+                        <label>Dose tomada (g)</label>
+                        <input type="number" id="creatineDose" placeholder="Ex: 5">
+                    </div>
+                    <div class="form-group">
+                        <label>Hora tomada</label>
+                        <input type="time" id="creatineTime">
+                    </div>
+                    <button onclick="logCreatine()" style="width: 100%; background: var(--success); margin-top: 10px;">
+                        💾 Registrar Dose
+                    </button>
+                    <div id="creatineLog" style="margin-top: 15px; max-height: 150px; overflow-y: auto; font-size: 12px;"></div>
+                </div>
+            </div>
+
+            <!-- Lado Direito -->
+            <div>
+                <div class="section">
+                    <h2>🏃‍♂️ Treinos do Dia</h2>
+                    <div class="form-group">
+                        <label>Tipo de treino</label>
+                        <select id="workoutType">
+                            <option value="pernas">Pernas</option>
+                            <option value="peito">Peito/Tríceps</option>
+                            <option value="costas">Costas/Bíceps</option>
+                            <option value="fullbody">Full Body</option>
+                            <option value="cardio">Cardio</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Duração (minutos)</label>
+                        <input type="number" id="workoutDuration" placeholder="Ex: 45">
+                    </div>
+                    <button onclick="addWorkout()" style="width: 100%; background: var(--info); margin-top: 10px;">
+                        🏃‍♂️ Registrar Treino
+                    </button>
+                    <div id="workoutLog" style="margin-top: 15px; max-height: 150px; overflow-y: auto; font-size: 12px;"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📋 Exames Médicos</h2>
+                    <p>Controle de quando fazer exames de rotina</p>
+                    <div class="form-group">
+                        <label>Tipo de exame</label>
+                        <input type="text" id="examType" placeholder="Ex: Hemograma, Perfil Lipídico">
+                    </div>
+                    <div class="form-group">
+                        <label>Data do último exame</label>
+                        <input type="date" id="lastExamDate">
+                    </div>
+                    <div class="form-group">
+                        <label>Próxima data recomendada</label>
+                        <input type="date" id="nextExamDate" disabled>
+                    </div>
+                    <button onclick="calculateNextExam()" style="width: 100%; background: var(--warning); margin-top: 10px;">
+                        📅 Calcular Próximo Exame
+                    </button>
+                    <div id="examLog" style="margin-top: 15px; max-height: 200px; overflow-y: auto; font-size: 12px;"></div>
+                </div>
+
+                <div class="section">
+                    <h2>📅 Próximos Lembretes</h2>
+                    <div id="remindersList">
+                        <!-- Será populado pelo JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="disclaimer">
+            ⚠️ <strong>Aviso Importante:</strong> Este aplicativo é apenas para controle e acompanhamento pessoal. Sempre consulte um médico para decisões sobre saúde, medicação e interpretação de exames. Não substitua orientação médica profissional.
+        </div>
+    </div>
+
+    <script>
+        // Inicializar localStorage se não existir
+        function initStorage() {
+            if (!localStorage.getItem('saudeData')) {
+                localStorage.setItem('saudeData', JSON.stringify({
+                    measurements: [],
+                    creatineLogs: [],
+                    workouts: [],
+                    exams: [],
+                    reminders: []
+                }));
+            }
+        }
+
+        // Carregar dados
+        function loadData() {
+            const data = JSON.parse(localStorage.getItem('saudeData'));
+            return data || {
+                measurements: [],
+                creatineLogs: [],
+                workouts: [],
+                exams: [],
+                reminders: []
+            };
+        }
+
+        // Salvar dados
+        function saveData(data) {
+            localStorage.setItem('saudeData', JSON.stringify(data));
+        }
+
+        // Chat functionality
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            if (!message) return;
+
+            // Adicionar mensagem do usuário
+            addChatMessage(message, 'user');
+            input.value = '';
+
+            // Processar mensagem
+            const response = processMessage(message);
+            setTimeout(() => {
+                addChatMessage(response, 'bot');
+            }, 500);
+        }
+
+        function addChatMessage(text, type) {
+            const area = document.getElementById('chatArea');
+            const msg = document.createElement('div');
+            msg.className = `chat-message ${type}-message`;
+            msg.innerHTML = `<strong>${type === 'user' ? 'Você' : 'Assistente'}</strong>: ${text}`;
+            if (type === 'bot') {
+                msg.innerHTML += `<span class="message-time">${new Date().toLocaleTimeString()}</span>`;
+            }
+            area.appendChild(msg);
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function processMessage(message) {
+            const lowerMsg = message.toLowerCase();
+
+            // Comandos do usuário
+            if (lowerMsg.includes('olá') || lowerMsg.includes('oi') || lowerMsg.includes('e aí')) {
+                return 'Olá! Tudo bem? Eu sou seu assistente de saúde. Digite "ajuda" para ver o que eu posso fazer.';
+            }
+
+            if (lowerMsg.includes('ajuda')) {
+                return 'Eu posso ajudar com: registrar peso/medidas, registrar creatina, registrar treinos, controlar exames médicos, calcular datas de exames e dar dicas de saúde. O que você gostaria de fazer?';
+            }
+
+            if (lowerMsg.includes('peso')) {
+                const data = loadData();
+                const lastWeight = data.measurements[data.measurements.length - 1];
+                return lastWeight ? `Seu último peso registrado foi ${lastWeight.weight} kg em ${lastWeight.date}` : 'Não há peso registrado ainda. Use o formulário acima para registrar.';
+            }
+
+            if (lowerMsg.includes('creatina')) {
+                const data = loadData();
+                if (data.creatineLogs.length > 0) {
+                    const last = data.creatineLogs[data.creatineLogs.length - 1];
+                    return `Última dose de creatina: ${last.g}mg às ${last.time} - ${last.date}. Você está seguindo o cronograma?`;
+                }
+                return 'Não há registro de creatina ainda. Use o formulário para registrar suas doses.';
+            }
+
+            if (lowerMsg.includes('treino') || lowerMsg.includes('exercício')) {
+                const data = loadData();
+                if (data.workouts.length > 0) {
+                    const lastWorkout = data.workouts[data.workouts.length - 1];
+                    return `Último treino: ${lastWorkout.type} por ${lastWorkout.duration} min em ${lastWorkout.date}. Como foi?`;
+                }
+                return 'Não há treino registrado ainda. Registre seu treino usando o formulário.';
+            }
+
+            if (lowerMsg.includes('exame')) {
+                const data = loadData();
+                if (data.exams.length > 0) {
+                    const lastExam = data.exams[data.exams.length - 1];
+                    return `Último exame registrado: ${lastExam.type} em ${lastExam.date}. Próximo recomendado: ${lastExam.nextDate}.`;
+                }
+                return 'Não há exames registrados. Use o formulário para adicionar seus exames e eu calcularei as datas de retorno.';
+            }
+
+            if (lowerMsg.includes('lembrete')) {
+                const data = loadData();
+                if (data.reminders.length === 0) return 'Não há lembretes cadastrados.';
+                return `Você tem ${data.reminders.length} lembrete(s) ativo(s). Use "próximos exames" para ver detalhes.`;
+            }
+
+            if (lowerMsg.includes('progresso')) {
+                const data = loadData();
+                let progressText = 'Seu progresso:\n';
+                if (data.measurements.length > 0) {
+                    const first = data.measurements[0];
+                    const last = data.measurements[data.measurements.length - 1];
+                    progressText += `- Peso: ${first.weight} kg → ${last.weight} kg (${last.weight - first.weight} kg ${last.weight > first.weight ? 'ganho' : 'perda'})\n`;
+                } else {
+                    progressText += '- Ainda não há medições de peso.\n';
+                }
+                progressText += `- Treinos realizados: ${data.workouts.length}\n`;
+                progressText += `- Doses de creatina: ${data.creatineLogs.length}`;
+                return progressText;
+            }
+
+            if (lowerMsg.includes('metas')) {
+                return 'Suas metas dependem dos seus objetivos! Podemos definir: perda de gordura, ganho de massa muscular, melhora de performance ou saúde geral. O que você busca?';
+            }
+
+            // Resposta padrão
+            return 'Não entendi totalmente. Tente perguntar sobre: peso, creatina, treinos, exames, progresso ou digite "ajuda" para ver todas as opções.';
+        }
+
+        // Adicionar medições
+        function addMeasurement() {
+            const weight = parseFloat(document.getElementById('weightInput').value);
+            const measurements = document.getElementById('measurementsInput').value;
+            const date = new Date().toLocaleDateString('pt-BR');
+
+            if (isNaN(weight)) {
+                alert('Por favor, informe um peso válido.');
+                return;
+            }
+
+            const data = loadData();
+            data.measurements.push({
+                weight: weight,
+                measurements: measurements || 'Não informado',
+                date: date
+            });
+            saveData(data);
+
+            // Atualizar painel
+            document.getElementById('todayStats').innerText = `Peso: ${weight} kg | ${data.measurements.length} registro(s)`;
+
+            // Limpar formulário
+            document.getElementById('weightInput').value = '';
+            document.getElementById('measurementsInput').value = '';
+
+            addChatMessage(`Peso de ${weight} kg registrado com sucesso!`, 'bot');
+        }
+
+        // Registrar creatina
+        function logCreatine() {
+            const dose = parseFloat(document.getElementById('creatineDose').value);
+            const time = document.getElementById('creatineTime').value;
+
+            if (isNaN(dose) || dose <= 0) {
+                alert('Por favor, informe uma dose válida de creatina.');
+                return;
+            }
+
+            const data = loadData();
+            const date = new Date().toLocaleDateString('pt-BR');
+            const hour = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            data.creatineLogs.push({
+                g: dose,
+                time: hour,
+                date: date
+            });
+            saveData(data);
+
+            // Atualizar log visual
+            const logContainer = document.getElementById('creatineLog');
+            const newEntry = document.createElement('div');
+            newEntry.innerText = `⚡ ${dose}g - ${hour} - ${date}`;
+            logContainer.appendChild(newEntry);
+
+            // Atualizar estatísticas
+            document.getElementById('creatineStats').innerText = `${data.creatineLogs.length} dose(s) registradas`;
+
+            addChatMessage(`Dose de ${dose}g de creatina registrada às ${hour}!`, 'bot');
+        }
+
+        // Adicionar treino
+        function addWorkout() {
+            const type = document.getElementById('workoutType').value;
+            const duration = parseInt(document.getElementById('workoutDuration').value);
+            const date = new Date().toLocaleDateString('pt-BR');
+
+            if (isNaN(duration) || duration <= 0) {
+                alert('Por favor, informe uma duração válida.');
+                return;
+            }
+
+            const data = loadData();
+            data.workouts.push({
+                type: type,
+                duration: duration,
+                date: date
+            });
+            saveData(data);
+
+            // Atualizar log visual
+            const logContainer = document.getElementById('workoutLog');
+            const newEntry = document.createElement('div');
+            newEntry.innerText = `🏃 ${type} - ${duration} min - ${date}`;
+            logContainer.appendChild(newEntry);
+
+            // Atualizar estatísticas
+            document.getElementById('todayStats').innerText = `${data.workouts.length} treino(s) hoje | ${data.measurements.length} registro(s) de peso`;
+
+            addChatMessage(`Treino ${type} de ${duration} min registrado!`, 'bot');
+        }
+
+        // Calcular próxima data de exame
+        function calculateNextExam() {
+            const examType = document.getElementById('examType').value;
+            const lastDate = document.getElementById('lastExamDate').value;
+
+            if (!lastDate) {
+                alert('Por favor, informe a data do último exame.');
+                return;
+            }
+
+            const data = loadData();
+
+            // Calcular baseado no tipo de exame (em meses)
+            const monthsMap = {
+                'hemograma': 3,
+                'perfil lipídico': 6,
+                'glicose': 6,
+                'vitamina d': 12,
+                'tsh (tireoide)': 12,
+                'exame geral': 12
+            };
+
+            const months = monthsMap[examType.toLowerCase()] || 6; // Padrão 6 meses
+            const dateObj = new Date(lastDate);
+            dateObj.setMonth(dateObj.getMonth() + months);
+
+            const nextDate = dateObj.toLocaleDateString('pt-BR');
+
+            // Salvar no storage
+            data.exams.push({
+                type: examType,
+                lastDate: lastDate,
+                nextDate: nextDate
+            });
+            saveData(data);
+
+            // Atualizar campo
+            document.getElementById('nextExamDate').value = nextDate;
+
+            addChatMessage(`Próximo ${examType} recomendado para: ${nextDate}`, 'bot');
+        }
+
+        // Adicionar lembrete
+        function addReminder() {
+            const data = loadData();
+
+            // Verificar se já tem lembrete para esse exame
+            const existing = data.reminders.find(r => r.type === document.getElementById('examType').value);
+
+            if (existing) {
+                alert('Este lembrete já está cadastrado.');
+                return;
+            }
+
+            const examType = document.getElementById('examType').value || 'Exame geral';
+            const lastDate = document.getElementById('lastExamDate').value;
+            const nextDate = document.getElementById('nextExamDate').value;
+
+            data.reminders.push({
+                type: examType,
+                lastDate: lastDate,
+                nextDate: nextDate,
+                created: new Date().toLocaleDateString()
+            });
+            saveData(data);
+
+            displayReminders();
+            addChatMessage(`Lembrete adicionado: ${examType} - Próximo em ${nextDate || 'data calculada'}`, 'bot');
+        }
+
+        // Exibir lembretes
+        function displayReminders() {
+            const container = document.getElementById('remindersList');
+            const data = loadData();
+
+            if (data.reminders.length === 0) {
+                container.innerHTML = '<p style="color: #666;">Nenhum lembrete cadastrado.</p>';
+                return;
+            }
+
+            container.innerHTML = data.reminders.map((r, i) => `
+                <div style="background: #fff3e0; padding: 10px; margin: 5px 0; border-radius: 8px; border-left: 4px solid #fFAc40;">
+                    <strong>${r.type}</strong> - Último: ${r.lastDate || 'N/A'} | Próximo: ${r.nextDate || 'A calcular'} <br>
+                    <small>Criado: ${r.created}</small>
+                    <button onclick="removeReminder(${i})" style="float: right; background: none; border: none; color: #f88; font-size: 12px; cursor: pointer;">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeReminder(index) {
+            const data = loadData();
+            data.reminders.splice(index, 1);
+            saveData(data);
+            displayReminders();
+        }
+
+        // Inicializar tudo
+        initStorage();
+        displayReminders();
+
+        // Event listeners
+        document.getElementById('userInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Carregar dados iniciais
+        const data = loadData();
+        if (data.measurements.length > 0) {
+            const last = data.measurements[data.measurements.length - 1];
+            document.getElementById('todayStats').innerText = `Peso: ${last.weight} kg | ${data.measurements.length} registro(s)`;
+        }
+        if (data.creatineLogs.length > 0) {
+            document.getElementById('creatineStats').innerText = `${data.creatineLogs.length} dose(s) registradas`;
+        }
+        if (data.workouts.length > 0) {
+            document.getElementById('todayStats').innerText += ` | ${data.workouts.length} treino(s)`;
+        }
+    </script>
+</body>
+</html>
