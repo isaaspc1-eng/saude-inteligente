@@ -85,13 +85,19 @@ header,.container{padding:12px}.card{padding:15px}
  <p class="muted">Registre suas informações e exporte um backup para manter uma cópia dos seus dados.</p>
 </section>
 <nav aria-label="Seções">
- <a href="#suplementos">Medicamentos</a><a href="#exames">Exames</a><a href="#treino">Treinos</a>
+ <a href="#hoje">Resumo de hoje</a><a href="#suplementos">Medicamentos</a><a href="#exames">Exames</a><a href="#treino">Treinos</a>
  <a href="#medidas">Medidas</a><a href="#habitos">Água e sono</a><a href="#perfil">Perfil</a>
  <a href="#metas">Metas de peso</a><a href="#dados">Backup</a>
 </nav>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <div class="grid">
+<section class="card" id="hoje">
+<h2>Resumo de hoje</h2>
+<p>Veja seus medicamentos cadastrados e registre as doses conforme a orientação recebida.</p>
+<div id="todayMeds"><p>Nenhum medicamento cadastrado.</p></div>
+<div class="note">Este painel não envia notificações automáticas e não confirma se uma dose foi realmente tomada. Use o registro apenas após tomar a dose.</div>
+</section>
 <section class="card" id="perfil">
 <h2>👑 Meu perfil</h2>
 <label for="name">Nome ou apelido</label><input id="name" maxlength="60">
@@ -199,9 +205,9 @@ header,.container{padding:12px}.card{padding:15px}
 
 <section class="card" id="exames">
 <h2>🧪 Exames de sangue</h2>
-<div class="note">Você pode guardar os resultados e anexar um arquivo para referência. Esta versão não faz OCR nem análise automática de PDFs/fotos. Não use valores isolados para decidir iniciar, interromper ou alterar medicamentos.</div>
-<label for="labFile">PDF ou foto do exame</label><input id="labFile" type="file" accept=".pdf,image/*">
-<p id="fileStatus" class="muted">O arquivo selecionado não será enviado para análise nesta versão.</p>
+<div class="note">Você pode salvar os resultados e anexar um PDF ou foto de até 2 MB. O arquivo ficará neste navegador, não será enviado para análise e pode aumentar o uso de armazenamento. Esta versão não interpreta exames automaticamente.</div>
+<label for="labFile">Anexar PDF ou foto (máx. 2 MB)</label><input id="labFile" type="file" accept=".pdf,image/*">
+<p id="fileStatus" class="muted">O anexo só será guardado quando você salvar o resultado.</p>
 <label for="labDate">Data do exame</label><input id="labDate" type="date">
 <label for="labName">Nome do exame ou marcador</label><input id="labName" placeholder="Ex.: ferritina, glicose, TSH">
 <div class="grid">
@@ -445,14 +451,17 @@ function addMeasurement(){
 function renderMeasurements(){
  $("measureHistory").innerHTML=state.measurements.slice().reverse().map(m=>`<div class="entry"><strong>${m.weight} kg</strong><small>${br(m.date)} · Cintura ${esc(m.waist||"—")} cm · Quadril ${esc(m.hip||"—")} cm · Braço ${esc(m.arm||"—")} cm</small><p>${esc(m.notes)}</p></div>`).join("")||"<p>Nenhuma medição registrada.</p>";
 }
-function saveLab(){
- const name=$("labName").value.trim(),value=$("labValue").value.trim();
+async function saveLab(){
+ const name=$("labName").value.trim(),value=$("labValue").value.trim(),file=$("labFile").files?.[0];
  if(!name||!value){notify("Informe o nome do exame e o resultado.");return}
- state.labs.push({date:$("labDate").value||today(),name,value,unit:$("labUnit").value.trim(),ref:$("labRef").value.trim(),notes:$("labNotes").value.trim()});
- if(save()){renderLabs();notify("Resultado salvo. Compare com a referência do laboratório.")}
+ if(file&&file.size>2*1024*1024){notify("O arquivo deve ter até 2 MB para não lotar o armazenamento local.");return}
+ let fileData="";
+ if(file){try{fileData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Falha ao ler o arquivo"));reader.readAsDataURL(file)})}catch(e){notify("Não foi possível ler o anexo.");return}}
+ state.labs.push({date:$("labDate").value||today(),name,value,unit:$("labUnit").value.trim(),ref:$("labRef").value.trim(),notes:$("labNotes").value.trim(),fileName:file?.name||"",fileData});
+ if(save()){renderLabs();$("labFile").value="";$("fileStatus").textContent="Nenhum arquivo selecionado.";notify("Resultado salvo no navegador.")}
 }
 function renderLabs(){
- $("labHistory").innerHTML=state.labs.slice().reverse().map(l=>`<div class="entry"><strong>${esc(l.name)}: ${esc(l.value)} ${esc(l.unit)}</strong><small>${br(l.date)} · Referência: ${esc(l.ref||"não informada")}</small><p>${esc(l.notes)}</p></div>`).join("")||"<p>Nenhum resultado cadastrado.</p>";
+ $("labHistory").innerHTML=state.labs.slice().reverse().map(l=>{const attachment=l.fileData?'<p><a href="'+l.fileData+'" download="'+esc(l.fileName||"anexo-exame") + '" style="color:var(--purple)">Abrir anexo: '+esc(l.fileName||"arquivo")+"</a></p>":"";return '<div class="entry"><strong>'+esc(l.name)+': '+esc(l.value)+' '+esc(l.unit||"")+'</strong><small>'+br(l.date)+' · Referência: '+esc(l.ref||"não informada")+'</small><p>'+esc(l.notes)+'</p>'+attachment+'</div>'}).join("")||"<p>Nenhum resultado cadastrado.</p>";
 }
 function saveMed(){
  const name=$("medName").value.trim(),dose=$("medDose").value.trim();
@@ -470,8 +479,14 @@ function renderMeds(){
  state.medLogs=state.medLogs||[];
  $("medHistory").innerHTML=state.meds.slice().reverse().map((m,i)=>{const index=state.meds.length-1-i;return '<div class="entry"><strong>'+esc(m.name)+' '+esc(m.dose||"")+'</strong><small>'+esc(m.type||"Medicamento")+' · '+esc(m.frequency||"Frequência não definida")+' · Início: '+br(m.start)+' · Horário: '+esc(m.time||"não definido")+'</small><p>'+esc(m.notes)+'</p><button class="secondary" onclick="markMedTaken('+index+')">Registrar dose tomada</button></div>'}).join("")||"<p>Nenhum medicamento ou suplemento cadastrado.</p>";
  $("doseHistory").innerHTML=state.medLogs.slice().reverse().slice(0,30).map(l=>'<div class="entry"><strong>'+esc(l.name)+' '+esc(l.dose||"")+'</strong><small>Registrado em '+br(l.date)+' às '+esc(l.time||"horário não informado")+'</small></div>').join("")||"<p>Nenhuma dose registrada ainda.</p>";
+ renderTodayMeds();
 }
-function renderAll(){renderProfile();renderGoals();showPlan();renderSets();renderWorkouts();renderHabits();renderMeasurements();renderLabs();renderMeds()}
+function renderTodayMeds(){
+ state.medLogs=state.medLogs||[];
+ const active=state.meds.filter(m=>m.active!==false);
+ $("todayMeds").innerHTML=active.map(m=>{const index=state.meds.indexOf(m);const taken=state.medLogs.some(l=>l.medId===(m.id||null)&&l.date===today());return '<div class="entry"><strong>'+esc(m.name)+' '+esc(m.dose||"")+'</strong><small>'+esc(m.time||"Horário não definido")+' · '+esc(m.frequency||"Frequência não definida")+'</small><p class="badge">'+(taken?"Dose registrada hoje":"Ainda sem registro de dose hoje")+'</p><button class="secondary" '+(taken?"disabled":"")+' onclick="markMedTaken('+index+')">'+(taken?"Registrada hoje":"Registrar dose tomada")+'</button></div>'}).join("")||"<p>Nenhum medicamento cadastrado. Adicione medicamentos na seção de controle.</p>";
+}
+function renderAll(){renderProfile();renderGoals();showPlan();renderSets();renderWorkouts();renderHabits();renderMeasurements();renderLabs();renderMeds();renderTodayMeds()}
 function exportBackup(){
  try{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
