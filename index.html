@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#100d18">
-<meta name="description" content="Saúde Inteligente: treinos, metas, hábitos e saúde.">
+<meta name="description" content="Saúde Inteligente: controle pessoal de medicamentos, suplementos e exames.">
 <link rel="manifest" href="./manifest.webmanifest">
 <title>Saúde Inteligente</title>
 <style>
@@ -64,7 +64,7 @@ header,.container{padding:12px}.card{padding:15px}
 <header>
  <div class="eyebrow">Sua jornada • Sua evolução</div>
  <h1>Saúde <span style="color:var(--purple)">Inteligente</span></h1>
- <p>Mais força, mais saúde, mais você. ✨</p>
+ <p>Seu espaço pessoal para organizar medicamentos, suplementos e exames.</p>
 </header>
 <main class="container">
 <section class="hero">
@@ -79,11 +79,15 @@ header,.container{padding:12px}.card{padding:15px}
  <p id="summary">Preencha seu perfil para começar.</p>
 </section>
 
+<section class="hero" aria-label="Acesso rápido">
+ <div class="eyebrow">Acesso rápido</div><h2>O que você precisa registrar?</h2>
+ <div class="actions"><a href="#suplementos" style="flex:1;text-align:center;text-decoration:none;background:var(--purple);color:#160d24;border-radius:10px;padding:10px 13px;font-weight:750">Medicamentos</a><a href="#exames" style="flex:1;text-align:center;text-decoration:none;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 13px">Exames</a><a href="#treino" style="flex:1;text-align:center;text-decoration:none;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 13px">Treinos</a></div>
+ <p class="muted">Registre suas informações e exporte um backup para manter uma cópia dos seus dados.</p>
+</section>
 <nav aria-label="Seções">
- <a href="#perfil">Perfil</a><a href="#metas">Metas de peso</a>
- <a href="#treino">Personal trainer</a><a href="#habitos">Água e sono</a>
- <a href="#medidas">Medidas</a><a href="#exames">Exames de sangue</a>
- <a href="#suplementos">Medicamentos e creatina</a><a href="#dados">Backup</a>
+ <a href="#suplementos">Medicamentos</a><a href="#exames">Exames</a><a href="#treino">Treinos</a>
+ <a href="#medidas">Medidas</a><a href="#habitos">Água e sono</a><a href="#perfil">Perfil</a>
+ <a href="#metas">Metas de peso</a><a href="#dados">Backup</a>
 </nav>
 <div id="toast" role="status" aria-live="polite"></div>
 
@@ -211,18 +215,23 @@ header,.container{padding:12px}.card{padding:15px}
 </section>
 
 <section class="card" id="suplementos">
-<h2>💊 Medicamentos e creatina</h2>
+<h2>💊 Controle de medicamentos e suplementos</h2>
 <div class="note">Registre somente tratamentos e doses orientados para você. Este formulário não prescreve medicamentos nem determina doses com base em exames.</div>
-<label for="medName">Medicamento ou suplemento</label><input id="medName" placeholder="Ex.: creatina">
+<label for="medName">Nome do medicamento ou suplemento</label><input id="medName" placeholder="Ex.: medicamento prescrito, creatina">
 <div class="grid">
-<div><label for="medDose">Dose registrada</label><input id="medDose" placeholder="Ex.: 3 g"></div>
-<div><label for="medTime">Horário</label><input id="medTime" type="time"></div>
+<div><label for="medType">Categoria</label><select id="medType"><option>Medicamento</option><option>Suplemento</option><option>Vitamina</option><option>Outro</option></select></div>
+<div><label for="medDose">Dose conforme orientação</label><input id="medDose" placeholder="Ex.: conforme receita"></div>
+</div>
+<div class="grid">
+<div><label for="medTime">Horário planejado</label><input id="medTime" type="time"></div>
+<div><label for="medFrequency">Frequência</label><select id="medFrequency"><option>Todos os dias</option><option>2 vezes ao dia</option><option>3 vezes ao dia</option><option>Semanal</option><option>Conforme prescrição</option><option>Se necessário</option></select></div>
 </div>
 <label for="medStart">Data de início</label><input id="medStart" type="date">
-<label for="medNotes">Orientação prescrita / observações</label><textarea id="medNotes" rows="2"></textarea>
-<div class="actions"><button onclick="saveMed()">Salvar registro</button></div>
+<label for="medNotes">Orientação da receita / observações</label><textarea id="medNotes" rows="2" placeholder="Instruções recebidas do profissional de saúde"></textarea>
+<div class="actions"><button onclick="saveMed()">Cadastrar medicamento</button></div>
 <div id="medHistory"></div>
-<div class="note">Os registros e horários são armazenados no navegador. Esta versão não garante notificações do sistema quando estiver fechada.</div>
+<h3>Histórico de doses registradas</h3><div id="doseHistory"></div>
+<div class="note">Este controle registra o que você informa; não substitui a receita nem garante alarmes quando o app estiver fechado. Confirme doses e horários com seu profissional de saúde.</div>
 </section>
 
 <section class="card" id="dados">
@@ -245,7 +254,7 @@ const defaults={
  profile:{name:"",age:30,height:169,weight:69,goal:"Ganhar músculos e reduzir gordura",level:"Intermediária",days:4,place:"Academia",equipment:"",limits:""},
  goals:{initialWeight:"",startDate:"",goal1:"",goal1Date:"",goal2:"",goal2Date:""},
  water:{date:"",amount:0,goal:2000},sleep:null,
- plan:[],sets:[],workouts:[],measurements:[],labs:[],meds:[]
+ plan:[],sets:[],workouts:[],measurements:[],labs:[],meds:[],medLogs:[]
 };
 let state;
 try{
@@ -448,11 +457,19 @@ function renderLabs(){
 function saveMed(){
  const name=$("medName").value.trim(),dose=$("medDose").value.trim();
  if(!name){notify("Informe o nome do medicamento ou suplemento.");return}
- state.meds.push({name,dose,time:$("medTime").value,start:$("medStart").value||today(),notes:$("medNotes").value.trim()});
- if(save()){renderMeds();notify("Registro salvo. Siga a orientação profissional.")}
+ state.meds.push({id:Date.now(),name,dose,type:$("medType").value,frequency:$("medFrequency").value,time:$("medTime").value,start:$("medStart").value||today(),notes:$("medNotes").value.trim()});
+ if(save()){renderMeds();notify("Cadastro salvo. Confira sempre a receita.")}
+}
+function markMedTaken(index){
+ const m=state.meds[index];if(!m)return;
+ state.medLogs=state.medLogs||[];
+ state.medLogs.push({name:m.name,dose:m.dose||"",date:today(),time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"}),medId:m.id||null});
+ if(save()){renderMeds();notify("Dose registrada. Confira se corresponde à orientação prescrita.")}
 }
 function renderMeds(){
- $("medHistory").innerHTML=state.meds.slice().reverse().map(m=>`<div class="entry"><strong>${esc(m.name)} ${esc(m.dose)}</strong><small>Início: ${br(m.start)} · Horário registrado: ${esc(m.time||"não definido")}</small><p>${esc(m.notes)}</p></div>`).join("")||"<p>Nenhum medicamento ou suplemento registrado.</p>";
+ state.medLogs=state.medLogs||[];
+ $("medHistory").innerHTML=state.meds.slice().reverse().map((m,i)=>{const index=state.meds.length-1-i;return '<div class="entry"><strong>'+esc(m.name)+' '+esc(m.dose||"")+'</strong><small>'+esc(m.type||"Medicamento")+' · '+esc(m.frequency||"Frequência não definida")+' · Início: '+br(m.start)+' · Horário: '+esc(m.time||"não definido")+'</small><p>'+esc(m.notes)+'</p><button class="secondary" onclick="markMedTaken('+index+')">Registrar dose tomada</button></div>'}).join("")||"<p>Nenhum medicamento ou suplemento cadastrado.</p>";
+ $("doseHistory").innerHTML=state.medLogs.slice().reverse().slice(0,30).map(l=>'<div class="entry"><strong>'+esc(l.name)+' '+esc(l.dose||"")+'</strong><small>Registrado em '+br(l.date)+' às '+esc(l.time||"horário não informado")+'</small></div>').join("")||"<p>Nenhuma dose registrada ainda.</p>";
 }
 function renderAll(){renderProfile();renderGoals();showPlan();renderSets();renderWorkouts();renderHabits();renderMeasurements();renderLabs();renderMeds()}
 function exportBackup(){
