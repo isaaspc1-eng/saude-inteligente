@@ -237,6 +237,30 @@ try{
 }catch(e){state=structuredClone(defaults)}
 state.waterHistory=Array.isArray(state.waterHistory)?state.waterHistory:[];
 state.sleepHistory=Array.isArray(state.sleepHistory)?state.sleepHistory:[];
+
+// Cadastro inicial dos suplementos informados pela usuária.
+// Executa uma única vez e preserva os registros já existentes.
+if(!state.supplementSeedV1){
+ const initialSupplements=[
+  {name:"Fortalvit Magnésio Bisglicinato",dose:"2 cápsulas",type:"Suplemento",frequency:"Conforme prescrição",time:"",start:today(),notes:"Horário informado anteriormente: à noite. Confirmar a frequência conforme o rótulo/orientação profissional."},
+  {name:"Ouro Pharma Zinco Quelato 20 mg + Cobre Quelato 1 mg",dose:"20 mg de zinco + 1 mg de cobre",type:"Suplemento",frequency:"Conforme prescrição",time:"",start:today(),notes:"Quantidade por tomada e horário não informados; confirmar no rótulo/orientação profissional."},
+  {name:"Natsvita Picolinato de Cromo",dose:"250 mg — 1 cápsula",type:"Suplemento",frequency:"Conforme prescrição",time:"",start:today(),notes:"Horário informado anteriormente: após o almoço. Confirmar frequência e dose no rótulo/orientação profissional."},
+  {name:"FusionVitta Psyllium",dose:"500 mg — 3 cápsulas",type:"Suplemento",frequency:"Conforme prescrição",time:"",start:today(),notes:"Horário informado anteriormente: antes do almoço. Confirmar frequência e modo de uso no rótulo; ingerir com água conforme orientação do produto."},
+  {name:"Coenzima Q10 Ubiquinol 200 mg",dose:"1 cápsula",type:"Suplemento",frequency:"Conforme prescrição",time:"",start:today(),notes:"Horário informado anteriormente: após o café da manhã. Confirmar frequência no rótulo/orientação profissional."},
+  {name:"Lavitan A-Z (Cimed)",dose:"1 cápsula",type:"Vitamina",frequency:"Conforme prescrição",time:"",start:today(),notes:"Horário informado anteriormente: após o café da manhã. Conferir a apresentação e a dose no rótulo."},
+  {name:"Bio C",dose:"1 unidade (confirmar apresentação)",type:"Vitamina",frequency:"Conforme prescrição",time:"",start:today(),notes:"Você escreveu “Bio C 1 hm”; confirmar a apresentação, a unidade e o horário antes de registrar doses."},
+  {name:"Vitamina D",dose:"2.000 UI — 1 cápsula",type:"Vitamina",frequency:"Conforme prescrição",time:"",start:today(),notes:"Horário informado anteriormente: após o café da manhã. Confirmar frequência no rótulo/orientação profissional."}
+ ];
+ state.meds=Array.isArray(state.meds)?state.meds:[];
+ const norm=s=>String(s||"").normalize("NFD").replace(/[\\u0300-\\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+ for(const item of initialSupplements){
+  const key=norm(item.name);
+  const exists=state.meds.some(m=>{const existing=norm(m.name);return existing===key||(key.includes(existing)&&existing.length>8)||(existing.includes(key)&&key.length>8)});
+  if(!exists)state.meds.push({...item,id:Date.now()+state.meds.length+1,active:true});
+ }
+ state.supplementSeedV1=true;
+ try{localStorage.setItem(KEY,JSON.stringify(state))}catch(e){}
+}
 function save(){
  try{localStorage.setItem(KEY,JSON.stringify(state));return true}
  catch(e){notify("Armazenamento cheio. Exporte o backup e reduza anexos.");return false}
