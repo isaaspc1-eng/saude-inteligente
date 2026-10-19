@@ -171,7 +171,9 @@ header,.container{padding:12px}.card{padding:15px}
 <h2>🧪 Exames de sangue</h2>
 <div class="note">Você pode salvar os resultados e anexar um PDF ou foto de até 2 MB. O arquivo ficará neste navegador, não será enviado para análise e pode aumentar o uso de armazenamento. Esta versão não interpreta exames automaticamente.</div>
 <label for="labFile">Anexar PDF ou foto (máx. 2 MB)</label><input id="labFile" type="file" accept=".pdf,image/*">
-<p id="fileStatus" class="muted">O anexo só será guardado quando você salvar o resultado.</p>
+<p id="fileStatus" class="muted">Selecione um PDF ou uma foto e use “Ler arquivo”. O texto será processado no navegador.</p>
+<div class="actions"><button type="button" class="secondary" onclick="readLabFile()">Ler arquivo</button></div>
+<label for="labExtracted">Texto extraído do laudo</label><textarea id="labExtracted" rows="6" placeholder="O texto reconhecido aparecerá aqui. Confira os dados antes de salvar."></textarea>
 <label for="labDate">Data do exame</label><input id="labDate" type="date">
 <label for="labName">Nome do exame ou marcador</label><input id="labName" placeholder="Ex.: ferritina, glicose, TSH">
 <div class="grid">
@@ -431,14 +433,38 @@ function renderMeasurements(){
  $("bodyCharts").innerHTML=chartCard("Peso (kg)",ms,"weight","kg")+chartCard("Cintura (cm)",ms,"waist","cm")+chartCard("Quadril (cm)",ms,"hip","cm");
  $("measureHistory").innerHTML=ms.slice().reverse().map(m=>`<div class="entry"><strong>${m.weight} kg</strong><small>${br(m.date)} · Cintura ${esc(m.waist||"—")} cm · Quadril ${esc(m.hip||"—")} cm · Braço ${esc(m.arm||"—")} cm</small><p>${esc(m.notes)}</p></div>`).join("")||"<p>Nenhuma medição registrada.</p>";
 }
+async function loadReaderScript(src){return new Promise((resolve,reject)=>{const s=document.createElement("script");s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error("Não consegui carregar a ferramenta de leitura. Confira a conexão."));document.head.appendChild(s)})}
+async function readLabFile(){
+ const file=$("labFile").files?.[0];if(!file){notify("Selecione um PDF ou uma foto primeiro.");return}
+ $("fileStatus").textContent="Lendo arquivo. Mantenha a página aberta.";
+ try{
+  let resultText="";
+  if(file.type==="application/pdf"||file.name.toLowerCase().endsWith(".pdf")){
+   await loadReaderScript("https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js");
+   window.pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+   const pdf=await window.pdfjsLib.getDocument({data:await file.arrayBuffer()}).promise;const pages=[];
+   for(let n=1;n<=Math.min(pdf.numPages,15);n++){const page=await pdf.getPage(n),content=await page.getTextContent();pages.push(content.items.map(x=>x.str).join(" "))}
+   resultText=pages.join("\\n\\n");if(!resultText.trim())throw new Error("Este PDF não tem texto selecionável. Tente uma imagem da página.");
+  }else if(file.type.startsWith("image/")){
+   await loadReaderScript("https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js");
+   const ocr=await window.Tesseract.recognize(file,"por");resultText=ocr.data.text||"";
+  }else throw new Error("Escolha um PDF ou uma imagem JPG, PNG ou WEBP.");
+  if(!resultText.trim())throw new Error("Não consegui reconhecer texto neste arquivo.");
+  $("labExtracted").value=resultText;$("fileStatus").textContent="Leitura concluída. Confira tudo no laudo original antes de salvar.";
+  if(!$("labName").value.trim())$("labName").value="Laudo de exames";
+  if(!$("labValue").value.trim())$("labValue").value="Texto extraído — conferir";
+  if(!$("labNotes").value.trim())$("labNotes").value="Texto extraído automaticamente; conferir manualmente.";
+  notify("Texto extraído. Revise os valores antes de usar.");
+ }catch(e){$("fileStatus").textContent=e.message||"Não foi possível ler o arquivo.";notify("Falha na leitura do arquivo.")}
+}
 async function saveLab(){
  const name=$("labName").value.trim(),value=$("labValue").value.trim(),file=$("labFile").files?.[0];
  if(!name||!value){notify("Informe o nome do exame e o resultado.");return}
  if(file&&file.size>2*1024*1024){notify("O arquivo deve ter até 2 MB para não lotar o armazenamento local.");return}
  let fileData="";
  if(file){try{fileData=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error("Falha ao ler o arquivo"));reader.readAsDataURL(file)})}catch(e){notify("Não foi possível ler o anexo.");return}}
- state.labs.push({date:$("labDate").value||today(),name,value,unit:$("labUnit").value.trim(),ref:$("labRef").value.trim(),notes:$("labNotes").value.trim(),fileName:file?.name||"",fileData});
- if(save()){renderLabs();$("labFile").value="";$("fileStatus").textContent="Nenhum arquivo selecionado.";notify("Resultado salvo no navegador.")}
+ state.labs.push({date:$("labDate").value||today(),name,value,unit:$("labUnit").value.trim(),ref:$("labRef").value.trim(),notes:$("labNotes").value.trim(),extractedText:$("labExtracted").value.trim(),fileName:file?.name||"",fileData});
+ if(save()){renderLabs();$("labFile").value="";$("labExtracted").value="";$("fileStatus").textContent="Nenhum arquivo selecionado.";notify("Resultado salvo no navegador.")}
 }
 function renderLabs(){
  $("labHistory").innerHTML=state.labs.slice().reverse().map(l=>{const attachment=l.fileData?'<p><a href="'+l.fileData+'" download="'+esc(l.fileName||"anexo-exame") + '" style="color:var(--purple)">Abrir anexo: '+esc(l.fileName||"arquivo")+"</a></p>":"";return '<div class="entry"><strong>'+esc(l.name)+': '+esc(l.value)+' '+esc(l.unit||"")+'</strong><small>'+br(l.date)+' · Referência: '+esc(l.ref||"não informada")+'</small><p>'+esc(l.notes)+'</p>'+attachment+'</div>'}).join("")||"<p>Nenhum resultado cadastrado.</p>";
