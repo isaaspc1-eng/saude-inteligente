@@ -1,5 +1,5 @@
 
-const CACHE_NAME = "saude-inteligente-v1";
+const CACHE_NAME = "saude-inteligente-v2";
 const APP_FILES = [
   "./",
   "./index.html",
