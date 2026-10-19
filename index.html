@@ -150,6 +150,7 @@ header,.container{padding:12px}.card{padding:15px}
 <label for="sleepDate">Data do sono</label><input id="sleepDate" type="date">
 <div class="actions"><button onclick="saveSleep()">Salvar sono</button></div>
 <p id="sleepText"></p>
+<h3>Gráficos de água e sono</h3><div id="habitCharts" class="grid"></div>
 </section>
 
 <section class="card" id="medidas">
@@ -163,7 +164,7 @@ header,.container{padding:12px}.card{padding:15px}
 </div>
 <label for="measureNotes">Observações</label><textarea id="measureNotes" rows="2"></textarea>
 <div class="actions"><button onclick="addMeasurement()">Salvar medição</button></div>
-<div id="measureHistory"></div>
+<h3>Evolução corporal</h3><div id="bodyCharts" class="grid"></div><div id="measureHistory"></div>
 </section>
 
 <section class="card" id="exames">
@@ -222,7 +223,7 @@ const $=id=>document.getElementById(id);
 const defaults={
  profile:{name:"",age:30,height:169,weight:69,goal:"Ganhar músculos e reduzir gordura",level:"Intermediária",days:4,place:"Academia",equipment:"",limits:""},
  goals:{initialWeight:"",startDate:"",goal1:"",goal1Date:"",goal2:"",goal2Date:""},
- water:{date:"",amount:0,goal:2000},sleep:null,
+ water:{date:"",amount:0,goal:2000},sleep:null,waterHistory:[],sleepHistory:[],
  plan:[],sets:[],workouts:[],measurements:[],labs:[],meds:[],medLogs:[]
 };
 let state;
@@ -232,6 +233,8 @@ try{
   if(state[k]===undefined)state[k]=structuredClone(defaults[k]);
  }
 }catch(e){state=structuredClone(defaults)}
+state.waterHistory=Array.isArray(state.waterHistory)?state.waterHistory:[];
+state.sleepHistory=Array.isArray(state.sleepHistory)?state.sleepHistory:[];
 function save(){
  try{localStorage.setItem(KEY,JSON.stringify(state));return true}
  catch(e){notify("Armazenamento cheio. Exporte o backup e reduza anexos.");return false}
@@ -380,6 +383,7 @@ function addWater(){
  if(!Number.isFinite(n)||n<1||n>3000){notify("Confira a quantidade de água.");return}
  if(state.water.date!==today()){state.water={date:today(),amount:0,goal:Number($("waterGoal").value)||2000}}
  state.water.amount+=n;state.water.goal=Number($("waterGoal").value)||2000;
+ state.waterHistory=state.waterHistory||[];const wh=state.waterHistory.find(x=>x.date===today());if(wh)wh.amount=state.water.amount;else state.waterHistory.push({date:today(),amount:state.water.amount});
  if(save()){renderHabits();notify("Água registrada!")}
 }
 function resetWater(){
@@ -391,6 +395,7 @@ function saveSleep(){
  const n=Number($("sleep").value);
  if($("sleep").value===""||!Number.isFinite(n)||n<0||n>24){notify("Informe horas de sono entre 0 e 24.");return}
  state.sleep={hours:n,date:$("sleepDate").value||today()};
+ state.sleepHistory=state.sleepHistory||[];const sh=state.sleepHistory.find(x=>x.date===state.sleep.date);if(sh)sh.hours=n;else state.sleepHistory.push({date:state.sleep.date,hours:n});
  if(save()){renderHabits();notify("Sono registrado.")}
 }
 function renderHabits(){
@@ -402,7 +407,18 @@ function renderHabits(){
  $("sleep").value=state.sleep?.hours??"";
  $("sleepDate").value=state.sleep?.date??today();
  $("sleepText").textContent=state.sleep?`Último registro: ${state.sleep.hours} h em ${br(state.sleep.date)}.`:"Nenhum sono registrado.";
+ $("habitCharts").innerHTML=chartCard("Água (ml)",state.waterHistory||[],"amount","ml")+chartCard("Sono (horas)",state.sleepHistory||[],"hours","h");
 }
+function chartCard(title,items,key,unit){
+ const pts=(items||[]).filter(x=>x&&x.date&&x[key]!==""&&x[key]!=null&&Number.isFinite(Number(x[key]))).slice().sort((a,b)=>a.date.localeCompare(b.date)).slice(-12);
+ if(!pts.length)return '<div class="entry"><strong>'+esc(title)+'</strong><p class="muted">Registre dados para montar este gráfico.</p></div>';
+ const vals=pts.map(x=>Number(x[key])),lo=Math.min(...vals),hi=Math.max(...vals),rg=hi-lo||1;
+ const xy=vals.map((v,i)=>({x:24+i*252/Math.max(1,vals.length-1),y:92-(v-lo)/rg*66,v,d:pts[i].date}));
+ const line=xy.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ');
+ const dots=xy.map(p=>'<circle cx="'+p.x+'" cy="'+p.y+'" r="3.5" fill="#f1cb75"><title>'+esc(br(p.d))+': '+esc(p.v)+' '+esc(unit)+'</title></circle>').join('');
+ return '<div class="entry"><strong>'+esc(title)+'</strong><svg viewBox="0 0 300 112" role="img" aria-label="'+esc(title)+' ao longo do tempo" style="width:100%;height:auto"><line x1="20" y1="96" x2="280" y2="96" stroke="#413352"/><polyline points="'+line+'" fill="none" stroke="#b18aff" stroke-width="2.5"/>'+dots+'</svg><small>'+esc(xy[0].v)+' → '+esc(xy[xy.length-1].v)+' '+esc(unit)+' · '+pts.length+' registro(s)</small></div>';
+}
+
 function addMeasurement(){
  const weight=Number($("measureWeight").value),date=$("measureDate").value||today();
  if(!Number.isFinite(weight)||weight<25||weight>350){notify("Informe um peso válido.");return}
@@ -411,7 +427,9 @@ function addMeasurement(){
  if(save()){renderMeasurements();renderProfile();renderGoals();notify("Medição salva e IMC atualizado.")}
 }
 function renderMeasurements(){
- $("measureHistory").innerHTML=state.measurements.slice().reverse().map(m=>`<div class="entry"><strong>${m.weight} kg</strong><small>${br(m.date)} · Cintura ${esc(m.waist||"—")} cm · Quadril ${esc(m.hip||"—")} cm · Braço ${esc(m.arm||"—")} cm</small><p>${esc(m.notes)}</p></div>`).join("")||"<p>Nenhuma medição registrada.</p>";
+ const ms=(state.measurements||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||""));
+ $("bodyCharts").innerHTML=chartCard("Peso (kg)",ms,"weight","kg")+chartCard("Cintura (cm)",ms,"waist","cm")+chartCard("Quadril (cm)",ms,"hip","cm");
+ $("measureHistory").innerHTML=ms.slice().reverse().map(m=>`<div class="entry"><strong>${m.weight} kg</strong><small>${br(m.date)} · Cintura ${esc(m.waist||"—")} cm · Quadril ${esc(m.hip||"—")} cm · Braço ${esc(m.arm||"—")} cm</small><p>${esc(m.notes)}</p></div>`).join("")||"<p>Nenhuma medição registrada.</p>";
 }
 async function saveLab(){
  const name=$("labName").value.trim(),value=$("labValue").value.trim(),file=$("labFile").files?.[0];
