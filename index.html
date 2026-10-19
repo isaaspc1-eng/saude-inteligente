@@ -467,7 +467,7 @@ async function saveLab(){
  if(save()){renderLabs();$("labFile").value="";$("labExtracted").value="";$("fileStatus").textContent="Nenhum arquivo selecionado.";notify("Resultado salvo no navegador.")}
 }
 function renderLabs(){
- $("labHistory").innerHTML=state.labs.slice().reverse().map(l=>{const attachment=l.fileData?'<p><a href="'+l.fileData+'" download="'+esc(l.fileName||"anexo-exame") + '" style="color:var(--purple)">Abrir anexo: '+esc(l.fileName||"arquivo")+"</a></p>":"";return '<div class="entry"><strong>'+esc(l.name)+': '+esc(l.value)+' '+esc(l.unit||"")+'</strong><small>'+br(l.date)+' · Referência: '+esc(l.ref||"não informada")+'</small><p>'+esc(l.notes)+'</p>'+attachment+'</div>'}).join("")||"<p>Nenhum resultado cadastrado.</p>";
+ $("labHistory").innerHTML=state.labs.slice().reverse().map(l=>{const extracted=l.extractedText?'<details><summary>Ver texto extraído</summary><pre style="white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted)">'+esc(l.extractedText)+'</pre></details>':"";const attachment=l.fileData?'<p><a href="'+l.fileData+'" download="'+esc(l.fileName||"anexo-exame") + '" style="color:var(--purple)">Abrir anexo: '+esc(l.fileName||"arquivo")+"</a></p>":"";return '<div class="entry"><strong>'+esc(l.name)+': '+esc(l.value)+' '+esc(l.unit||"")+'</strong><small>'+br(l.date)+' · Referência: '+esc(l.ref||"não informada")+'</small><p>'+esc(l.notes)+'</p>'+extracted+attachment+'</div>'}).join("")||"<p>Nenhum resultado cadastrado.</p>";
 }
 function saveMed(){
  const name=$("medName").value.trim(),dose=$("medDose").value.trim();
