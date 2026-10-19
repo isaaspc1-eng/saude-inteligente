@@ -74,18 +74,17 @@ header,.container{padding:12px}.card{padding:15px}
   <div class="stat"><span>Peso atual</span><strong id="sWeight">—</strong></div>
   <div class="stat"><span>IMC estimado</span><strong id="sBMI">—</strong></div>
   <div class="stat"><span>Água hoje</span><strong id="sWater">0 ml</strong></div>
-  <div class="stat"><span>Treinos registrados</span><strong id="sWorkouts">0</strong></div>
  </div>
  <p id="summary">Preencha seu perfil para começar.</p>
 </section>
 
 <section class="hero" aria-label="Acesso rápido">
  <div class="eyebrow">Acesso rápido</div><h2>O que você precisa registrar?</h2>
- <div class="actions"><a href="#suplementos" style="flex:1;text-align:center;text-decoration:none;background:var(--purple);color:#160d24;border-radius:10px;padding:10px 13px;font-weight:750">Medicamentos</a><a href="#exames" style="flex:1;text-align:center;text-decoration:none;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 13px">Exames</a><a href="#treino" style="flex:1;text-align:center;text-decoration:none;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 13px">Treinos</a></div>
+ <div class="actions"><a href="#suplementos" style="flex:1;text-align:center;text-decoration:none;background:var(--purple);color:#160d24;border-radius:10px;padding:10px 13px;font-weight:750">Medicamentos</a><a href="#exames" style="flex:1;text-align:center;text-decoration:none;background:var(--panel2);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 13px">Exames</a></div>
  <p class="muted">Registre suas informações e exporte um backup para manter uma cópia dos seus dados.</p>
 </section>
 <nav aria-label="Seções">
- <a href="#hoje">Resumo de hoje</a><a href="#suplementos">Medicamentos</a><a href="#exames">Exames</a><a href="#treino">Treinos</a>
+ <a href="#hoje">Resumo de hoje</a><a href="#suplementos">Medicamentos</a><a href="#exames">Exames</a>
  <a href="#medidas">Medidas</a><a href="#habitos">Água e sono</a><a href="#perfil">Perfil</a>
  <a href="#metas">Metas de peso</a><a href="#dados">Backup</a>
 </nav>
@@ -139,42 +138,6 @@ header,.container{padding:12px}.card{padding:15px}
 <div class="actions"><button onclick="saveGoals()">Salvar metas</button></div>
 <div id="goalProgress"></div>
 <div class="note">As metas são pessoais. Datas e pesos são estimativas, não garantias de resultado.</div>
-</section>
-
-<section class="card" id="treino">
-<h2>🏋️ Personal trainer</h2>
-<p>Monte uma sugestão com base no seu perfil. Ajuste o plano às suas condições e à sua técnica.</p>
-<div class="actions"><button onclick="makePlan()">Montar meu treino</button><button class="secondary" onclick="showPlan()">Ver treino salvo</button></div>
-<div id="plan"></div>
-<hr style="border-color:var(--border);margin:18px 0">
-<h3>⏱️ Cronômetro de descanso</h3>
-<div class="bigtime" id="clock">01:30</div>
-<label for="restSeconds">Duração do descanso (segundos)</label>
-<input id="restSeconds" type="number" min="5" max="900" value="90">
-<div class="actions">
-<button onclick="startTimer()">Iniciar</button><button class="secondary" onclick="pauseTimer()">Pausar</button><button class="secondary" onclick="resetTimer()">Reiniciar</button>
-</div>
-<p id="timerStatus" class="muted">Configure o tempo e inicie o cronômetro.</p>
-<hr style="border-color:var(--border);margin:18px 0">
-<h3>📈 Registrar carga utilizada</h3>
-<label for="exercise">Exercício</label><input id="exercise" placeholder="Ex.: agachamento">
-<div class="grid">
-<div><label for="load">Carga total (kg)</label><input id="load" type="number" min="0" step=".25"></div>
-<div><label for="reps">Repetições</label><input id="reps" type="number" min="1" max="500"></div>
-</div>
-<label for="sets">Série nº</label><input id="sets" type="number" min="1" max="100" value="1">
-<label for="trainingNotes">Observações</label><input id="trainingNotes" placeholder="Como se sentiu?">
-<div class="actions"><button onclick="logSet()">Salvar série</button></div>
-<div id="exerciseHistory"></div>
-<hr style="border-color:var(--border);margin:18px 0">
-<h3>Registrar sessão de treino</h3>
-<label for="workoutDate">Data</label><input id="workoutDate" type="date">
-<label for="workoutType">Tipo</label>
-<select id="workoutType"><option>Corpo inteiro</option><option>Pernas e glúteos</option><option>Costas e bíceps</option><option>Peito, ombros e tríceps</option><option>Cardio</option><option>Mobilidade</option></select>
-<label for="duration">Duração (minutos)</label><input id="duration" type="number" min="1" max="300">
-<label for="workoutNotes">Observações</label><textarea id="workoutNotes" rows="2"></textarea>
-<div class="actions"><button onclick="logWorkout()">Registrar treino concluído</button></div>
-<div id="workoutHistory"></div>
 </section>
 
 <section class="card" id="habitos">
@@ -299,7 +262,6 @@ function renderProfile(){
  $("sBMI").textContent=Number.isFinite(bmi)?bmi.toLocaleString("pt-BR",{maximumFractionDigits:1}):"—";
  $("bmiInfo").textContent="IMC estimado: "+(Number.isFinite(bmi)?bmi.toLocaleString("pt-BR",{maximumFractionDigits:1}):"—")+". O IMC não distingue massa muscular de gordura.";
  $("greeting").textContent=p.name?`Vamos nessa, ${p.name}! Cada registro conta. 💜`:"Um passo de cada vez. Você está evoluindo.";
- $("sWorkouts").textContent=state.workouts.length;
 }
 function renderGoals(){
  const g=state.goals;
@@ -486,7 +448,7 @@ function renderTodayMeds(){
  const active=state.meds.filter(m=>m.active!==false);
  $("todayMeds").innerHTML=active.map(m=>{const index=state.meds.indexOf(m);const taken=state.medLogs.some(l=>l.medId===(m.id||null)&&l.date===today());return '<div class="entry"><strong>'+esc(m.name)+' '+esc(m.dose||"")+'</strong><small>'+esc(m.time||"Horário não definido")+' · '+esc(m.frequency||"Frequência não definida")+'</small><p class="badge">'+(taken?"Dose registrada hoje":"Ainda sem registro de dose hoje")+'</p><button class="secondary" '+(taken?"disabled":"")+' onclick="markMedTaken('+index+')">'+(taken?"Registrada hoje":"Registrar dose tomada")+'</button></div>'}).join("")||"<p>Nenhum medicamento cadastrado. Adicione medicamentos na seção de controle.</p>";
 }
-function renderAll(){renderProfile();renderGoals();showPlan();renderSets();renderWorkouts();renderHabits();renderMeasurements();renderLabs();renderMeds();renderTodayMeds()}
+function renderAll(){renderProfile();renderGoals();renderHabits();renderMeasurements();renderLabs();renderMeds();renderTodayMeds()}
 function exportBackup(){
  try{
   const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
